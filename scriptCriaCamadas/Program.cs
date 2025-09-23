@@ -11,6 +11,8 @@
             return;
         }
 
+        const string Repository = "Repository";
+        const string Business = "Business";
         string basePath = Directory.GetCurrentDirectory();
         string dependencyInjectionPath = Path.Combine(basePath, "Portal.Autoware.Infra.CrossCutting.IoC", "NativeInjectorBootStrapper.cs");
         string tableNameFormatado = FormatarNomeTabela(tableName);
@@ -33,16 +35,16 @@
 
         #region Criação e alteração de arquivos
         await AdicionarDbSet(caminhoContexto, tableNameFormatado); // Adiciona DbSet no contexto informado
-        await AdicionarInjecaoDependecia(dependencyInjectionPath, tableNameFormatado, "Business"); //Cria injeção de dependencia para business
-        await AdicionarInjecaoDependecia(dependencyInjectionPath, tableNameFormatado, "Repository"); //Cria injeção de dependencia para repository
+        await AdicionarInjecaoDependecia(dependencyInjectionPath, tableNameFormatado, Business); //Cria injeção de dependencia para business
+        await AdicionarInjecaoDependecia(dependencyInjectionPath, tableNameFormatado, Repository); //Cria injeção de dependencia para repository
 
         var camadas = new[]
         {
             new { Pasta = "Portal.Autoware.Entidades", NomeArquivo = $"{tableNameFormatado}.cs", Template = Templates.EntityTemplate },
-            new { Pasta = "Portal.Autoware.Model.Repository", NomeArquivo = $"I{tableNameFormatado}Repository.cs", Template = Templates.IRepositoryTemplate },
-            new { Pasta = "Portal.Autoware.Data.Repository", NomeArquivo = $"{tableNameFormatado}Repository.cs", Template = Templates.RepositoryTemplate },
-            new { Pasta = "Portal.Autoware.Model.Business", NomeArquivo = $"I{tableNameFormatado}Business.cs", Template = Templates.IBusinessTemplate },
-            new { Pasta = "Portal.Autoware.Business", NomeArquivo = $"{tableNameFormatado}Business.cs", Template = Templates.BusinessTemplate }
+            new { Pasta = "Portal.Autoware.Model.Repository", NomeArquivo = $"I{tableNameFormatado}{Repository}.cs", Template = Templates.IRepositoryTemplate },
+            new { Pasta = "Portal.Autoware.Data.Repository", NomeArquivo = $"{tableNameFormatado}{Repository}.cs", Template = Templates.RepositoryTemplate },
+            new { Pasta = "Portal.Autoware.Model.Business", NomeArquivo = $"I{tableNameFormatado}{Business}.cs", Template = Templates.IBusinessTemplate },
+            new { Pasta = "Portal.Autoware.Business", NomeArquivo = $"{tableNameFormatado}{Business}.cs", Template = Templates.BusinessTemplate }
         };
 
         foreach (var camada in camadas)
@@ -61,6 +63,7 @@
             .Replace("{{NOMEUPPER}}", tableName.ToUpper());
 
         Directory.CreateDirectory(Path.GetDirectoryName(caminho)!);
+
         await File.WriteAllTextAsync(caminho, content);
 
         Console.WriteLine($"Caminho {caminho} criado com sucesso!\n");
