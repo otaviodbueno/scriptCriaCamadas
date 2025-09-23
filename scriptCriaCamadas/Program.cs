@@ -11,47 +11,46 @@
             return;
         }
 
-        Console.WriteLine("Digite o nome do context que deseja adicionar a nova tabela. Caso queira adicionar ao ContextCore, aperte Enter.");            
-        var inputContext = Console.ReadLine();
+        string basePath = Directory.GetCurrentDirectory();
+        string dependencyInjectionPath = Path.Combine(basePath, "Portal.Autoware.Infra.CrossCutting.IoC", "NativeInjectorBootStrapper.cs");
+        string tableNameFormatado = FormatarNomeTabela(tableName);
+
+        Console.WriteLine("Digite o nome do context que deseja adicionar a nova tabela. Caso queira adicionar ao ContextCore, aperte Enter.");
+        var inputContext = Console.ReadLine()?.Trim();
 
         var contextName = string.IsNullOrWhiteSpace(inputContext) ? "ContextCore.cs" : $"{inputContext}.cs";
 
-        string basePath = Directory.GetCurrentDirectory();
-
         var caminhoContexto = Path.Combine(basePath, "Portal.Autoware.DadosBase", "Contexts", contextName);
 
-        if (!Directory.Exists(caminhoContexto))
+        if (!File.Exists(caminhoContexto))
         {
             Console.WriteLine("Contexto não encontrado. Digite um contexto válido");
             return;
         }
 
-        var tableNameFormatado = FormatarNomeTabela(tableName);
 
         Console.WriteLine($"Gerando arquivos para: {tableNameFormatado}\n");
 
-        await AdicionarDbSet(caminhoContexto, tableNameFormatado);
+        #region Criação e alteração de arquivos
+        await AdicionarDbSet(caminhoContexto, tableNameFormatado); // Adiciona DbSet no contexto informado
+        await AdicionarInjecaoDependecia(dependencyInjectionPath, tableNameFormatado, "Business"); //Cria injeção de dependencia para business
+        await AdicionarInjecaoDependecia(dependencyInjectionPath, tableNameFormatado, "Repository"); //Cria injeção de dependencia para repository
 
+        var camadas = new[]
+        {
+            new { Pasta = "Portal.Autoware.Entidades", NomeArquivo = $"{tableNameFormatado}.cs", Template = Templates.EntityTemplate },
+            new { Pasta = "Portal.Autoware.Model.Repository", NomeArquivo = $"I{tableNameFormatado}Repository.cs", Template = Templates.IRepositoryTemplate },
+            new { Pasta = "Portal.Autoware.Data.Repository", NomeArquivo = $"{tableNameFormatado}Repository.cs", Template = Templates.RepositoryTemplate },
+            new { Pasta = "Portal.Autoware.Model.Business", NomeArquivo = $"I{tableNameFormatado}Business.cs", Template = Templates.IBusinessTemplate },
+            new { Pasta = "Portal.Autoware.Business", NomeArquivo = $"{tableNameFormatado}Business.cs", Template = Templates.BusinessTemplate }
+        };
 
-        // Entidade
-        string entityPath = Path.Combine(basePath, "Portal.Autoware.Entidades", $"{tableNameFormatado}.cs");
-        await GerarArquivos(entityPath, Templates.EntityTemplate, tableNameFormatado);
-
-        // IRepository
-        string IRepositoryPath = Path.Combine(basePath, "Portal.Autoware.Model.Repository", $"I{tableNameFormatado}Repository.cs");
-        await GerarArquivos(IRepositoryPath, Templates.IRepositoryTemplate, tableNameFormatado);
-
-        // Repository
-        string repositoryPath = Path.Combine(basePath, "Portal.Autoware.Data.Repository", $"{tableNameFormatado}Repository.cs");
-        await GerarArquivos(repositoryPath, Templates.RepositoryTemplate, tableNameFormatado);
-
-        // IBusiness
-        string IBusinessPath = Path.Combine(basePath, "Portal.Autoware.Model.Business", $"I{tableNameFormatado}Business.cs");
-        await GerarArquivos(IBusinessPath, Templates.IBusinessTemplate, tableNameFormatado);
-
-        // Business
-        string businessPath = Path.Combine(basePath, "Portal.Autoware.Business", $"{tableNameFormatado}Business.cs");
-        await GerarArquivos(businessPath, Templates.BusinessTemplate, tableNameFormatado);
+        foreach (var camada in camadas)
+        {
+            var path = Path.Combine(basePath, camada.Pasta, tableNameFormatado, camada.NomeArquivo);
+            await GerarArquivos(path, camada.Template, tableNameFormatado);
+        }
+        #endregion 
     }
 
     static async Task GerarArquivos(string caminho, string template, string tableName)
@@ -94,7 +93,7 @@
 
         if (index != -1)
         {
-            content.Insert(index - 1, dbSetLine);
+            content.Insert(index, dbSetLine); // Adiciona a nova linha no lugar da primeira ocorrência
         }
 
         await File.WriteAllLinesAsync(filePath, content);
@@ -102,7 +101,7 @@
         Console.WriteLine($"Adicionado DbSet<{tableName}> ao contexto em {filePath}");
     }
 
-    static async Task AdicionarInjecaoDependecia(string filePath, string tableName)
+    static async Task AdicionarInjecaoDependecia(string filePath, string tableName, string camada)
     {
         var leituraArquivo = await File.ReadAllLinesAsync(filePath);
         var content = leituraArquivo.ToList();
@@ -111,17 +110,16 @@
 
         var currentLine = content[index];
         var indentation = new string(currentLine.TakeWhile(char.IsWhiteSpace).ToArray());
-        var repositoryLine = $"{indentation}services.AddScoped<I{tableName}Repository, {tableName}Repository"; // Adiciona a mesma identeção da linha 
-        var businessLine = $"{indentation}services.AddScoped<I{tableName}Business, {tableName}Business"; // Adiciona a mesma identeção da linha
+        var newDependencyInjectionLine = $"{indentation}services.AddScoped<I{tableName}{camada}, {tableName}{camada}>();"; // Adiciona a mesma identeção da linha 
 
         if (index != -1)
         {
-            content.Insert(index - 1, repositoryLine);
+            content.Insert(index, newDependencyInjectionLine); // Adiciona a nova linha no lugar da primeira ocorrência
         }
 
         await File.WriteAllLinesAsync(filePath, content);
 
-        Console.WriteLine($"Adicionado injeção de dependência.");
+        Console.WriteLine($"Adicionado injeção de dependência para {camada}.");
     }
 }
 
