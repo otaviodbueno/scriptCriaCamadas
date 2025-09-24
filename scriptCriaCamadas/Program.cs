@@ -38,14 +38,7 @@
         await AdicionarInjecaoDependecia(dependencyInjectionPath, tableNameFormatado, Business); //Cria injeção de dependencia para business
         await AdicionarInjecaoDependecia(dependencyInjectionPath, tableNameFormatado, Repository); //Cria injeção de dependencia para repository
 
-        var camadas = new[]
-        {
-            new { Pasta = "Portal.Autoware.Entidades", NomeArquivo = $"{tableNameFormatado}.cs", Template = Templates.EntityTemplate },
-            new { Pasta = "Portal.Autoware.Model.Repository", NomeArquivo = $"I{tableNameFormatado}{Repository}.cs", Template = Templates.IRepositoryTemplate },
-            new { Pasta = "Portal.Autoware.Data.Repository", NomeArquivo = $"{tableNameFormatado}{Repository}.cs", Template = Templates.RepositoryTemplate },
-            new { Pasta = "Portal.Autoware.Model.Business", NomeArquivo = $"I{tableNameFormatado}{Business}.cs", Template = Templates.IBusinessTemplate },
-            new { Pasta = "Portal.Autoware.Business", NomeArquivo = $"{tableNameFormatado}{Business}.cs", Template = Templates.BusinessTemplate }
-        };
+        var camadas = ListGeracaoArquivos(tableNameFormatado, Repository, Business);
 
         foreach (var camada in camadas)
         {
@@ -59,7 +52,7 @@
     {
         var content = template
             .Replace("{{NOME}}", tableName)
-            .Replace("{{NOMELOWER}}", ToLower(tableName))
+            .Replace("{{NOMELOWER}}", ToLowerFirstChar(tableName))
             .Replace("{{NOMEUPPER}}", tableName.ToUpper());
 
         Directory.CreateDirectory(Path.GetDirectoryName(caminho)!);
@@ -117,6 +110,29 @@
         Console.WriteLine($"Adicionado injeção de dependência para {camada}.\n");
     }
 
+    static List<GeracaoArquivo> ListGeracaoArquivos(string tableNameFormatado, string Repository, string Business)
+    {
+        var listArquivos = new List<GeracaoArquivo>();
+
+        listArquivos.Add(Map("Portal.Autoware.Entidades", $"{tableNameFormatado}.cs", Templates.EntityTemplate));
+        listArquivos.Add(Map("Portal.Autoware.Model.Repository", $"I{tableNameFormatado}{Repository}.cs", Templates.IRepositoryTemplate));
+        listArquivos.Add(Map("Portal.Autoware.Data.Repository", $"{tableNameFormatado}{Repository}.cs", Templates.RepositoryTemplate));
+        listArquivos.Add(Map("Portal.Autoware.Model.Business",  $"I{tableNameFormatado}{Business}.cs", Templates.IBusinessTemplate));
+        listArquivos.Add(Map("Portal.Autoware.Business", $"{tableNameFormatado}{Business}.cs", Templates.BusinessTemplate));
+
+        return listArquivos;
+    }
+
+    static GeracaoArquivo Map(string pasta, string nomeArquivo, string template)
+    {
+        return new GeracaoArquivo
+        {
+            Pasta = pasta,
+            NomeArquivo = nomeArquivo,
+            Template = template
+        };
+    }
+
     static string FormatarNomeTabela(string texto)
     {
         if (string.IsNullOrEmpty(texto))
@@ -125,7 +141,7 @@
         return char.ToUpper(texto[0]) + texto[1..];
     }
 
-    static string ToLower(string texto)
+    static string ToLowerFirstChar(string texto)
     {
         if (string.IsNullOrEmpty(texto))
             return texto;
@@ -207,4 +223,11 @@ public static class Templates
         {
         }
         """;
+}
+
+public class GeracaoArquivo
+{
+    public string Pasta { get; set; }
+    public string NomeArquivo { get; set; }
+    public string Template { get; set; }
 }
