@@ -2,7 +2,7 @@
 {
     static async Task Main(string[] args)
     {
-        Console.WriteLine("Digite o nome da tabela que deseja adicionar: ");
+        Console.WriteLine("Digite o nome da tabela que deseja adicionar (digite corretamente as letras maiúsculas e minúsculas): ");
         var tableName = Console.ReadLine();
 
         if (string.IsNullOrWhiteSpace(tableName))
@@ -17,7 +17,7 @@
         string dependencyInjectionPath = Path.Combine(basePath, "Portal.Autoware.Infra.CrossCutting.IoC", "NativeInjectorBootStrapper.cs");
         string tableNameFormatado = FormatarNomeTabela(tableName);
 
-        Console.WriteLine("Digite o nome do context que deseja adicionar a nova tabela. Caso queira adicionar ao ContextCore, aperte Enter.");
+        Console.WriteLine("Digite o nome do context que deseja adicionar a nova tabela. Caso queira adicionar ao ContextCore, aperte Enter.\n");
         var inputContext = Console.ReadLine()?.Trim();
 
         var contextName = string.IsNullOrWhiteSpace(inputContext) ? "ContextCore.cs" : $"{inputContext}.cs";
@@ -31,7 +31,7 @@
         }
 
 
-        Console.WriteLine($"Gerando arquivos para: {tableNameFormatado}\n");
+        Console.WriteLine($"Gerando arquivos para: {tableNameFormatado}...");
 
         #region Criação e alteração de arquivos
         await AdicionarDbSet(caminhoContexto, tableNameFormatado); // Adiciona DbSet no contexto informado
@@ -59,22 +59,14 @@
     {
         var content = template
             .Replace("{{NOME}}", tableName)
-            .Replace("{{NOMELOWER}}", tableName.ToLower())
+            .Replace("{{NOMELOWER}}", ToLower(tableName))
             .Replace("{{NOMEUPPER}}", tableName.ToUpper());
 
         Directory.CreateDirectory(Path.GetDirectoryName(caminho)!);
 
         await File.WriteAllTextAsync(caminho, content);
 
-        Console.WriteLine($"Caminho {caminho} criado com sucesso!\n");
-    }
-
-    static string FormatarNomeTabela(string texto)
-    {
-        if (string.IsNullOrEmpty(texto))
-            return texto;
-
-        return char.ToUpper(texto[0]) + texto[1..];
+        Console.WriteLine($"Caminho {caminho} criado com sucesso!");
     }
 
     static async Task AdicionarDbSet(string filePath, string tableName)
@@ -101,7 +93,7 @@
 
         await File.WriteAllLinesAsync(filePath, content);
 
-        Console.WriteLine($"Adicionado DbSet<{tableName}> ao contexto em {filePath}");
+        Console.WriteLine($"Adicionado DbSet<{tableName}> ao contexto em {filePath}\n");
     }
 
     static async Task AdicionarInjecaoDependecia(string filePath, string tableName, string camada)
@@ -122,7 +114,23 @@
 
         await File.WriteAllLinesAsync(filePath, content);
 
-        Console.WriteLine($"Adicionado injeção de dependência para {camada}.");
+        Console.WriteLine($"Adicionado injeção de dependência para {camada}.\n");
+    }
+
+    static string FormatarNomeTabela(string texto)
+    {
+        if (string.IsNullOrEmpty(texto))
+            return texto;
+
+        return char.ToUpper(texto[0]) + texto[1..];
+    }
+
+    static string ToLower(string texto)
+    {
+        if (string.IsNullOrEmpty(texto))
+            return texto;
+
+        return char.ToLower(texto[0]) + texto[1..];
     }
 }
 
