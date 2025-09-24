@@ -17,7 +17,7 @@
         string dependencyInjectionPath = Path.Combine(basePath, "Portal.Autoware.Infra.CrossCutting.IoC", "NativeInjectorBootStrapper.cs");
         string tableNameFormatado = FormatarNomeTabela(tableName);
 
-        Console.WriteLine("Digite o nome do context que deseja adicionar a nova tabela. Caso queira adicionar ao ContextCore, aperte Enter.\n");
+        Console.WriteLine("Digite o nome do context que deseja adicionar a nova tabela. Caso queira adicionar ao ContextCore, aperte Enter.");
         var inputContext = Console.ReadLine()?.Trim();
 
         var contextName = string.IsNullOrWhiteSpace(inputContext) ? "ContextCore.cs" : $"{inputContext}.cs";
@@ -73,7 +73,7 @@
             return;
         }
 
-        var index = content.FindIndex(l => l.Contains("DbSet<")); // Encontra a primeira ocorrência de DbSet<
+        var index = content.FindLastIndex(l => l.Contains("DbSet<")); // Encontra a primeira ocorrência de DbSet<
 
         var currentLine = content[index];
         var indentation = new string(currentLine.TakeWhile(char.IsWhiteSpace).ToArray());
@@ -81,7 +81,7 @@
 
         if (index != -1)
         {
-            content.Insert(index, dbSetLine); // Adiciona a nova linha no lugar da primeira ocorrência
+            content.Insert(index + 1, dbSetLine); // Adiciona a nova linha após a última ocorrência
         }
 
         await File.WriteAllLinesAsync(filePath, content);
@@ -94,7 +94,7 @@
         var leituraArquivo = await File.ReadAllLinesAsync(filePath);
         var content = leituraArquivo.ToList();
 
-        var index = content.FindIndex(l => l.Contains("services.AddScoped<")); // Encontra a primeira ocorrência de DbSet<
+        var index = content.FindLastIndex(l => l.Contains("services.AddScoped<")); // Encontra a primeira ocorrência de DbSet<
 
         var currentLine = content[index];
         var indentation = new string(currentLine.TakeWhile(char.IsWhiteSpace).ToArray());
@@ -102,7 +102,7 @@
 
         if (index != -1)
         {
-            content.Insert(index, newDependencyInjectionLine); // Adiciona a nova linha no lugar da primeira ocorrência
+            content.Insert(index + 1, newDependencyInjectionLine); // Adiciona a nova linha após a última ocorrência
         }
 
         await File.WriteAllLinesAsync(filePath, content);
