@@ -1,5 +1,10 @@
-﻿class Program
+﻿using scriptCriaCamadas;
+
+class Program
 {
+    const string Repository = "Repository";
+    const string Business = "Business";
+    const string Validation = "Validation";
     static async Task Main(string[] args)
     {
         Console.WriteLine("Digite o nome da tabela que deseja adicionar (digite corretamente as letras maiúsculas e minúsculas): ");
@@ -11,14 +16,19 @@
             return;
         }
 
-        const string Repository = "Repository";
-        const string Business = "Business";
         string basePath = Directory.GetCurrentDirectory();
-        string dependencyInjectionPath = Path.Combine(basePath, "Portal.Autoware.Infra.CrossCutting.IoC", "NativeInjectorBootStrapper.cs");
+
         string tableNameFormatado = FormatarNomeTabela(tableName);
 
         Console.WriteLine("Digite o nome do context que deseja adicionar a nova tabela. Caso queira adicionar ao ContextCore, aperte Enter.");
         var inputContext = Console.ReadLine()?.Trim();
+
+        Console.WriteLine("Deseja adicionar classe de Validation? Este passo também cria modelView (S / N): ");
+        var wantValidation = InputDesejaAdicionar();
+         
+        Console.WriteLine("Deseja adicionar Controller? (S / N): ");
+        var wantController = InputDesejaAdicionar();
+
 
         var contextName = string.IsNullOrWhiteSpace(inputContext) ? "ContextCore.cs" : $"{inputContext}.cs";
 
@@ -35,14 +45,26 @@
 
         #region Criação e alteração de arquivos
         await AdicionarDbSet(caminhoContexto, tableNameFormatado); // Adiciona DbSet no contexto informado
+
+        string dependencyInjectionPath = Path.Combine(basePath, "Portal.Autoware.Infra.CrossCutting.IoC", "NativeInjectorBootStrapper.cs");
         await AdicionarInjecaoDependecia(dependencyInjectionPath, tableNameFormatado, Business); //Cria injeção de dependencia para business
         await AdicionarInjecaoDependecia(dependencyInjectionPath, tableNameFormatado, Repository); //Cria injeção de dependencia para repository
+        await AdicionarInjecaoDependecia(dependencyInjectionPath, tableNameFormatado, Validation); //Cria injeção de dependencia para validation
 
-        var camadas = ListGeracaoArquivos(tableNameFormatado, Repository, Business);
+        var camadas = ListGeracaoArquivos(tableNameFormatado, Repository, Business, Validation, wantValidation, wantController);
 
         foreach (var camada in camadas)
         {
-            var path = Path.Combine(basePath, camada.Pasta, tableNameFormatado, camada.NomeArquivo);
+            string[] pastas = camada.Pasta.Split('/');
+
+            var path = Path.Combine(basePath);
+
+            foreach(var pasta in pastas)
+            { 
+                path = Path.Combine(path, pasta);
+            }
+
+            path = Path.Combine(path, tableNameFormatado, camada.NomeArquivo);
             await GerarArquivos(path, camada.Template, tableNameFormatado);
         }
         #endregion 
@@ -110,7 +132,22 @@
         Console.WriteLine($"Adicionado injeção de dependência para {camada}.\n");
     }
 
-    static List<GeracaoArquivo> ListGeracaoArquivos(string tableNameFormatado, string Repository, string Business)
+    static bool InputDesejaAdicionar()
+    {
+        var input = Console.ReadLine()?.Trim().ToUpper();
+        
+        while (input != "S" && input != "N")
+        {
+            Console.WriteLine("Entrada inválida. Digite 'S' para Sim ou 'N' para Não.");
+            input = Console.ReadLine()?.Trim().ToUpper();
+        }
+
+        var desejaAdicionar = input == "S";
+        
+        return desejaAdicionar;
+    }
+
+    static List<GeracaoArquivo> ListGeracaoArquivos(string tableNameFormatado, string Repository, string Business, string Validation, bool wantToCreateValidation, bool wantToCreateController)
     {
         var listArquivos = new List<GeracaoArquivo>();
 
@@ -119,6 +156,15 @@
         listArquivos.Add(Map("Portal.Autoware.Data.Repository", $"{tableNameFormatado}{Repository}.cs", Templates.RepositoryTemplate));
         listArquivos.Add(Map("Portal.Autoware.Model.Business",  $"I{tableNameFormatado}{Business}.cs", Templates.IBusinessTemplate));
         listArquivos.Add(Map("Portal.Autoware.Business", $"{tableNameFormatado}{Business}.cs", Templates.BusinessTemplate));
+
+        if(wantToCreateValidation)
+        {
+            listArquivos.Add(Map("Portal.Autoware.Business", $"{tableNameFormatado}{Validation}.cs", Templates.ValidationTemplate));
+            listArquivos.Add(Map("Portal.Autoware.Model.Business", $"I{tableNameFormatado}{Validation}.cs", Templates.IValidationTemplate));
+            listArquivos.Add(Map("Portal.Autoware.Model.Business", $"{tableNameFormatado}ModelView.cs", Templates.ModelViewTemplate));
+        }
+
+        if (wantToCreateController) listArquivos.Add(Map("Portal.Autoware.Core.Web/Areas", $"{tableNameFormatado}Controller.cs", Templates.ControllerTemplate));
 
         return listArquivos;
     }
@@ -148,86 +194,4 @@
 
         return char.ToLower(texto[0]) + texto[1..];
     }
-}
-
-public static class Templates
-{
-    public const string EntityTemplate = """
-        using System.ComponentModel.DataAnnotations;
-        using System.ComponentModel.DataAnnotations.Schema;
-
-        namespace Portal.Autoware.Model.Repository;
-
-        [Table("{{NOMEUPPER}}")]
-        public class {{NOME}}
-        {
-            [Key]
-            [DatabaseGenerated(DatabaseGeneratedOption.None)]
-            public long ID_{{NOMEUPPER}} { get; set; }
-
-
-            // Adicione outras propriedades conforme necessário
-        }
-        """;
-
-    public const string RepositoryTemplate = """
-        using Autoware.Template.Data.Repository;
-        using Portal.Autoware.Model.Repository;
-
-        namespace Portal.Autoware.Data.Repository;
-
-        public class {{NOME}}Repository : Repository<{{NOME}}>, I{{NOME}}Repository
-        {
-            public {{NOME}}Repository(IContextCore ctx) : base(ctx)
-            {
-            }
-        }
-        """;
-
-    public const string IRepositoryTemplate = """
-        using Autoware.Template.Model.Repository;
-
-        namespace Portal.Autoware.Model.Repository;
-
-        public interface I{{NOME}}Repository : IRepository<{{NOME}}>
-        {
-        }
-        """;
-
-    public const string BusinessTemplate = """
-        using Autoware.Template.Business;
-        using Autoware.Template.Model.Business;
-        using Portal.Autoware.Model.Business;
-        using Portal.Autoware.Model.Repository;
-
-        namespace Portal.Autoware.Business;
-
-        public class {{NOME}}Business : AbstractBusiness, I{{NOME}}Business
-        {
-            private readonly I{{NOME}}Repository _{{NOMELOWER}}Repository;
-
-            public {{NOME}}Business(IGeneralDataRequest generalDataRequest, I{{NOME}}Repository {{NOMELOWER}}Repository) 
-                : base(generalDataRequest)
-            {
-                _{{NOMELOWER}}Repository = {{NOMELOWER}}Repository;
-            }
-        }
-        """;
-
-    public const string IBusinessTemplate = """
-        using Autoware.Template.Model.Business;
-
-        namespace Portal.Autoware.Model.Business;
-
-        public interface I{{NOME}}Business : IAbstractBusiness
-        {
-        }
-        """;
-}
-
-public class GeracaoArquivo
-{
-    public string Pasta { get; set; }
-    public string NomeArquivo { get; set; }
-    public string Template { get; set; }
 }
