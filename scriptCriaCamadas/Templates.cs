@@ -28,7 +28,7 @@ public static class Templates
 
         public class {{NOME}}Repository : Repository<{{NOME}}>, I{{NOME}}Repository
         {
-            public {{NOME}}Repository(IContextCore ctx) : base(ctx)
+            public {{NOME}}Repository(I{{CONTEXT}} ctx) : base(ctx)
             {
             }
         }
@@ -75,6 +75,7 @@ public static class Templates
         """;
 
     public const string ValidationTemplate = """
+        using Autoware.Template.Business;
         using Autoware.Template.Model.Business;
         using Portal.Autoware.Model.Business;
         namespace Portal.Autoware.Business;
@@ -152,7 +153,7 @@ public static class Templates
 
          [HttpGet]
          //[ProducesResponseType(200, Type = typeof()]
-         public async Task<IActionResult> Get()
+         public IActionResult Get()
          {
              return Response(null, true);
          }

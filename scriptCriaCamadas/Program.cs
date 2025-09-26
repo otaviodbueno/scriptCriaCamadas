@@ -65,17 +65,18 @@ class Program
             }
 
             path = Path.Combine(path, tableNameFormatado, camada.NomeArquivo);
-            await GerarArquivos(path, camada.Template, tableNameFormatado);
+            await GerarArquivos(path, camada.Template, tableNameFormatado, contextName.Replace(".cs", ""));
         }
         #endregion 
     }
 
-    static async Task GerarArquivos(string caminho, string template, string tableName)
+    static async Task GerarArquivos(string caminho, string template, string tableName, string context)
     {
         var content = template
             .Replace("{{NOME}}", tableName)
             .Replace("{{NOMELOWER}}", ToLowerFirstChar(tableName))
-            .Replace("{{NOMEUPPER}}", tableName.ToUpper());
+            .Replace("{{NOMEUPPER}}", tableName.ToUpper())
+            .Replace("{{CONTEXT}}", context); // Altera apenas o RepositoryTemplate
 
         Directory.CreateDirectory(Path.GetDirectoryName(caminho)!);
 
@@ -152,14 +153,14 @@ class Program
         var listArquivos = new List<GeracaoArquivo>();
 
         listArquivos.Add(Map("Portal.Autoware.Entidades", $"{tableNameFormatado}.cs", Templates.EntityTemplate));
-        listArquivos.Add(Map("Portal.Autoware.Model.Repository", $"I{tableNameFormatado}{Repository}.cs", Templates.IRepositoryTemplate));
-        listArquivos.Add(Map("Portal.Autoware.Data.Repository", $"{tableNameFormatado}{Repository}.cs", Templates.RepositoryTemplate));
+        listArquivos.Add(Map("Portal.Autoware.Entidades", $"I{tableNameFormatado}{Repository}.cs", Templates.IRepositoryTemplate));
+        listArquivos.Add(Map("Portal.Autoware.Core.Repositorio", $"{tableNameFormatado}{Repository}.cs", Templates.RepositoryTemplate));
         listArquivos.Add(Map("Portal.Autoware.Model.Business",  $"I{tableNameFormatado}{Business}.cs", Templates.IBusinessTemplate));
-        listArquivos.Add(Map("Portal.Autoware.Business", $"{tableNameFormatado}{Business}.cs", Templates.BusinessTemplate));
+        listArquivos.Add(Map("Portal.Autoware.Core.Negocio", $"{tableNameFormatado}{Business}.cs", Templates.BusinessTemplate));
 
         if(wantToCreateValidation)
         {
-            listArquivos.Add(Map("Portal.Autoware.Business", $"{tableNameFormatado}{Validation}.cs", Templates.ValidationTemplate));
+            listArquivos.Add(Map("Portal.Autoware.Core.Negocio", $"{tableNameFormatado}{Validation}.cs", Templates.ValidationTemplate));
             listArquivos.Add(Map("Portal.Autoware.Model.Business", $"I{tableNameFormatado}{Validation}.cs", Templates.IValidationTemplate));
             listArquivos.Add(Map("Portal.Autoware.Model.Business", $"{tableNameFormatado}ModelView.cs", Templates.ModelViewTemplate));
         }
