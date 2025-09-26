@@ -47,15 +47,18 @@ class Program
         await AdicionarDbSet(caminhoContexto, tableNameFormatado); // Adiciona DbSet no contexto informado
 
         string dependencyInjectionPath = Path.Combine(basePath, "Portal.Autoware.Infra.CrossCutting.IoC", "NativeInjectorBootStrapper.cs");
-        await AdicionarInjecaoDependecia(dependencyInjectionPath, tableNameFormatado, Business); //Cria injeção de dependencia para business
-        await AdicionarInjecaoDependecia(dependencyInjectionPath, tableNameFormatado, Repository); //Cria injeção de dependencia para repository
-        await AdicionarInjecaoDependecia(dependencyInjectionPath, tableNameFormatado, Validation); //Cria injeção de dependencia para validation
+        string[] camadas = new[] { Business, Repository, Validation };
 
-        var camadas = ListGeracaoArquivos(tableNameFormatado, Repository, Business, Validation, wantValidation, wantController);
-
-        foreach (var camada in camadas)
+        foreach(var camada in camadas)
         {
-            string[] pastas = camada.Pasta.Split('/');
+            await AdicionarInjecaoDependecia(dependencyInjectionPath, tableNameFormatado, camada); //Cria injeção de dependencia para repository, business e validation
+        }
+
+        var arquivoGeracao = ListGeracaoArquivos(tableNameFormatado, Repository, Business, Validation, wantValidation, wantController);
+
+        foreach (var arquivo in arquivoGeracao)
+        {
+            string[] pastas = arquivo.Pasta.Split('/');
 
             var path = Path.Combine(basePath);
 
@@ -64,8 +67,8 @@ class Program
                 path = Path.Combine(path, pasta);
             }
 
-            path = Path.Combine(path, tableNameFormatado, camada.NomeArquivo);
-            await GerarArquivos(path, camada.Template, tableNameFormatado, contextName.Replace(".cs", ""));
+            path = Path.Combine(path, tableNameFormatado, arquivo.NomeArquivo);
+            await GerarArquivos(path, arquivo.Template, tableNameFormatado, contextName.Replace(".cs", ""));
         }
         #endregion 
     }
