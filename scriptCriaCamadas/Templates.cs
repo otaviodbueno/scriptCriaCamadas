@@ -15,7 +15,6 @@ public static class Templates
             [DatabaseGenerated(DatabaseGeneratedOption.None)]
             public long ID_{{NOMEUPPER}} { get; set; }
 
-
             // Adicione outras propriedades conforme necessário
         }
         """;
@@ -109,8 +108,6 @@ public static class Templates
         """;
 
     public const string ModelViewTemplate = """
-     using System;
-
      namespace Portal.Autoware.Model.Business;
 
      public class {{NOME}}ModelView
@@ -124,17 +121,8 @@ public static class Templates
     public const string ControllerTemplate = """
      using Autoware.Template.Api.Controller;
      using Microsoft.AspNetCore.Authorization;
-     using Microsoft.AspNetCore.Http;
      using Microsoft.AspNetCore.Mvc;
-     using Portal.Autoware.Business;
      using Portal.Autoware.Model.Business;
-     using Portal.Autoware.Model.Repository;
-     using System;
-     using System.Collections.Generic;
-     using System.ComponentModel.DataAnnotations;
-     using System.Linq;
-     using System.Text.Json;
-     using System.Threading.Tasks;
 
      namespace Portal.Autoware.Api.Areas;
 
@@ -152,7 +140,7 @@ public static class Templates
          }
 
          [HttpGet]
-         //[ProducesResponseType(200, Type = typeof()]
+         //[ProducesResponseType(200, Type = typeof())]
          public IActionResult Get()
          {
              return Response(null, true);

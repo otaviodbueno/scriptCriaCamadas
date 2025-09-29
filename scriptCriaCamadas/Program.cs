@@ -7,6 +7,7 @@ class Program
     const string Validation = "Validation";
     static async Task Main(string[] args)
     {
+        #region Inputs
         Console.WriteLine("Digite o nome da tabela que deseja adicionar (digite corretamente as letras maiúsculas e minúsculas): ");
         var tableName = Console.ReadLine();
 
@@ -23,7 +24,7 @@ class Program
         Console.WriteLine("Digite o nome do context que deseja adicionar a nova tabela. Caso queira adicionar ao ContextCore, aperte Enter.");
         var inputContext = Console.ReadLine()?.Trim();
 
-        Console.WriteLine("Deseja adicionar classe de Validation? Este passo também cria modelView (S / N): ");
+        Console.WriteLine("Deseja adicionar classe de Validation? Este passo também cria uma ModelView (S / N): ");
         var wantValidation = InputDesejaAdicionar();
          
         Console.WriteLine("Deseja adicionar Controller? (S / N): ");
@@ -39,7 +40,7 @@ class Program
             Console.WriteLine("Contexto não encontrado. Digite um contexto válido");
             return;
         }
-
+        #endregion
 
         Console.WriteLine($"Gerando arquivos para: {tableNameFormatado}...");
 
